@@ -1,0 +1,123 @@
+<?php
+
+/**
+ * Implements hook_menu()
+ * @author Simon Jarbrant (simon@dsv.su.se)
+ */
+
+function projprop_edit_menu() {
+	$items['edit/%node'] = array(
+		'title' => 'ProjProp Edit',
+		'page callback' => 'projprop_edit_page',
+		'page arguments' => array(1),
+		'access callback' => TRUE,
+		// 'access arguments' => array('project proposal edit own content'),
+	);
+
+	return $items;
+}
+
+/**
+ * Delivery callback for /edit/nid
+ */
+function projprop_edit_page($node) {
+	// Only Proposal nodes are allowed!
+	if ($node->type != 'project_proposal') {
+		return t('Invalid node type!');
+	}
+
+	// Create associative array and send to drupal_json_output()
+	$data = array();
+	$data['edit-proposalform-proposal-edit-node'] = $node->nid;
+	$data['edit-proposalform-proposal-title'] = $node->title;
+
+	// Load the author
+	if (isset($node->field_dsv_person_in_charge[LANGUAGE_NONE])) {
+		$author = user_load($node->field_dsv_person_in_charge[LANGUAGE_NONE][0]['uid']);
+		$data['edit-proposalform-proposal-dsv-person-in-charge'] = $author->name;
+	} else {
+		$data['edit-proposalform-proposal-dsv-person-in-charge'] = "";
+	}
+
+	// We only need the deadline date, which is the first 10 characters
+	$data['edit-proposalform-proposal-deadline-datepicker-popup-0'] =
+		substr($node->field_deadline[LANGUAGE_NONE][0]['value'], 0, 10);
+
+	// Load "Duration" and "Is DSV coordinating"
+	$data['edit-proposalform-proposal-duration'] = $node->field_duration[LANGUAGE_NONE][0]['value'];
+	$data['edit-proposalform-proposal-is-dsv-coordinating'] =
+		$node->field_is_dsv_coordinating[LANGUAGE_NONE][0]['value'];
+
+	// Load "Other coordinator"
+	if (isset($node->field_other_coordinator[LANGUAGE_NONE])) {
+		$data['edit-proposalform-proposal-other-coordinator'] =
+			$node->field_other_coordinator[LANGUAGE_NONE][0]['value'];
+	} else {
+		$data['edit-proposalform-proposal-other-coordinator'] = "";
+	}
+
+	// Load "Program/Call/Target"
+	if (isset($node->field_program_call_target[LANGUAGE_NONE])) {
+		$data['edit-proposalform-proposal-program-call-target'] =
+			$node->field_program_call_target[LANGUAGE_NONE][0]['value'];
+	} else {
+		$data['edit-proposalform-proposal-program-call-target'] = "";
+	}
+
+	// Load "Co-financing needed"
+	$data['edit-proposalform-proposal-co-financing-needed'] =
+		$node->field_co_financing_needed[LANGUAGE_NONE][0]['value'];
+
+	// Load "Co-financing covered by"
+	if (isset($node->field_co_financing_covered_by[LANGUAGE_NONE])) {
+		$data['edit-proposalform-proposal-co-financing-covered-by'] =
+			$node->field_co_financing_covered_by[LANGUAGE_NONE][0]['value'];
+	} else {
+		$data['edit-proposalform-proposal-co-financing-covered-by'] = "";
+	}
+
+	// Load "Percent OH-costs sovered"
+	if (isset($node->field_percent_oh_costs_covered[LANGUAGE_NONE])) {
+		$data['edit-proposalform-proposal-percent-oh-costs-covered'] =
+			$node->field_percent_oh_costs_covered[LANGUAGE_NONE][0]['value'];
+	} else {
+		$data['edit-proposalform-proposal-percent-oh-costs-covered'] = 0;
+	}
+
+	// Load the funding organisation
+	if (isset($node->field_funding_organization[LANGUAGE_NONE])) {
+		$organization =
+			taxonomy_term_load($node->field_funding_organization[LANGUAGE_NONE][0]['tid']);
+		$data['edit-proposalform-proposal-funding-organization'] = $organization->name;
+	} else {
+		$data['edit-proposalform-proposal-funding-organization'] = "";
+	}
+
+	// Load budgets
+	if (isset($node->field_total_budget_amount_for_co[LANGUAGE_NONE])) {
+		$data['edit-proposalform-proposal-total-budget-amount-for-co'] =
+			$node->field_total_budget_amount_for_co[LANGUAGE_NONE][0]['value'];
+	} else {
+		$data['edit-proposalform-proposal-total-budget-amount-for-co'] = 0;
+	}
+
+	if (isset($node->field_total_budget_amount_for_ds[LANGUAGE_NONE])) {
+		$data['edit-proposalform-proposal-total-budget-amount-for-ds'] =
+			$node->field_total_budget_amount_for_ds[LANGUAGE_NONE][0]['value'];
+	} else {
+		$data['edit-proposalform-proposal-total-budget-amount-for-ds'] = 0;
+	}
+
+	// Load "Currency", "OK from DSV Economy", "Forskningsservice informed", "OK from Uno" and "Sent to Birgitta O"
+	$data['edit-proposalform-proposal-currency'] =
+		$node->field_currency[LANGUAGE_NONE][0]['value'];
+	$data['edit-proposalform-proposal-ok-from-dsv-economy'] =
+		$node->field_ok_from_dsv_economy[LANGUAGE_NONE][0]['value'];
+	$data['edit-proposalform-proposal-forskningsservice-informed'] =
+		$node->field_forskningsservice_informed[LANGUAGE_NONE][0]['value'];
+	$data['edit-proposalform-proposal-ok-from-uno'] = $node->field_ok_from_uno[LANGUAGE_NONE][0]['value'];
+	$data['edit-proposalform-proposal-sent-to-birgitta-o'] = $node->field_sent_to_birgitta_o[LANGUAGE_NONE][0]['value'];
+
+	// Generate JSON and return to caller
+	drupal_json_output($data);
+}
