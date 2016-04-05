@@ -15,25 +15,29 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	if (!$node || isset($node->field_ok_from_unit_head) && !$node->field_ok_from_unit_head['und'][0]['value']) {
 		unset($form['field_attachment_to_dsv_economy']);
 		unset($form['field_attachments_to_vice_head']);
+		unset($form['field_comments_to_dsv_economy']);
+		unset($form['field_comments_to_vice_head']);
 		unset($form['field_final_attachments']);
 	}
 
 	// After Unit Head OK
 	if (isset($node->field_ok_from_unit_head) && $node->field_ok_from_unit_head['und'][0]['value']) {
-		var_dump('expression');
 		unset($form['field_attachment_unit']);
+		unset($form['field_comments_to_unit_head']);
 		unset($form['field_unit_head']);
 	}
 
 	// Before Economy OK
 	if (isset($node->field_ok_from_dsv_economy) && !$node->field_ok_from_dsv_economy['und'][0]['value']) {
 		unset($form['field_attachments_to_vice_head']);
+		unset($form['field_comments_to_vice_head']);
 		unset($form['field_final_attachments']);
 	}
 
 	// After Economy OK
 	if (isset($node->field_ok_from_dsv_economy) && $node->field_ok_from_dsv_economy['und'][0]['value']) {
 		unset($form['field_attachment_to_dsv_economy']);
+		unset($form['field_comments_to_dsv_economy']);
 		unset($form['field_ok_from_unit_head']);
 		unset($form['field_attachment_unit']);
 	}
@@ -46,6 +50,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	// After Vice Head OK
 	if (isset($node->field_ok_from_uno) && $node->field_ok_from_uno['und'][0]['value']) {
 		unset($form['field_attachments_to_vice_head']);
+		unset($form['field_comments_to_vice_head']);
 		unset($form['field_ok_from_dsv_economy']);
 	}
 
