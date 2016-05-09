@@ -8,6 +8,12 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		return;
 	}
 
+	unset($form['field_cancelled']);
+	unset($form['field_sent_to_birgitta_o']);
+
+	// Hide revision logs
+	$form['revision_information']['#access'] = FALSE;
+
 	// Set Author to be a current user.
 	$form['field_dsv_person_in_charge']['und'][0]['uid']['#default_value'] = $user->uid;
 
@@ -60,7 +66,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 
 /**
 * Implementation of hook_menu().
-*/
+**/
 function projprop_edit_menu() {
   $items['node/approve/%node'] = array(
     'page arguments' => array(1),
@@ -69,9 +75,43 @@ function projprop_edit_menu() {
     //'access arguments' => array('access content'),
     'delivery callback' => 'projprop_edit_callback',  // Magic goes here
   );
+  $items['node/cancel/%node'] = array(
+  	'page arguments' => array(1),
+    'type' => MENU_CALLBACK,
+    'access callback' => TRUE,
+    //'access arguments' => array('access content'),
+    'delivery callback' => 'projprop_edit_callback',  // Magic goes here
+  );
   return $items;
 }
 
+/*function projprop_edit_cancel_callback($node) {
+	// Only Proposal nodes are allowed!
+	echo 'DFDFD';
+	$data = array(true);
+	$node = node_load(arg(2));
+	//$approvalby = arg(3);
+	if ($node->type != 'project_proposal') {
+		return t('Invalid node type!');
+	}
+	switch (arg(3)) {
+		case 'unit-head':
+			$node->field_ok_from_unit_head[LANGUAGE_NONE][0]['value'] = 1;
+			break;
+		case 'dsv-economy':
+			$node->field_ok_from_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
+			break;
+		case 'vice-head':
+			$node->field_ok_from_uno[LANGUAGE_NONE][0]['value'] = 1;
+			break;		
+		default:
+			break;
+	}
+
+//	node_save($node);
+	drupal_json_output($data);
+}
+*/
 function projprop_edit_callback($node) {
 	// Only Proposal nodes are allowed!
 	$data = array(true);
@@ -81,6 +121,12 @@ function projprop_edit_callback($node) {
 		return t('Invalid node type!');
 	}
 	switch (arg(3)) {
+		case 'cancel':
+			$node->field_cancelled[LANGUAGE_NONE][0]['value'] = 1;
+			break;
+		case 'uncancel':
+			$node->field_cancelled[LANGUAGE_NONE][0]['value'] = 0;
+			break;
 		case 'unit-head':
 			$node->field_ok_from_unit_head[LANGUAGE_NONE][0]['value'] = 1;
 			break;
