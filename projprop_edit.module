@@ -4,12 +4,53 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	global $user;
 
 	$node = isset($form['#node']->title) ? $form['#node'] : null;
+
+	$editable = false;
+	$economy = false;
+	$unithead = false;
+	$vicehead = false;
+	$admin = false;
 	if (isset($user->roles[3])) {
+		// User is an administrator
+		$editable = true;
 		return;
+	} else if (isset($user->roles[5])) {
+		// User is the vice prefect
+		$editable = true;
+		$vicehead = true;
+	} else if (isset($user->roles[6])) {
+		// User is the institution secretary
+		$editable = true;
+	} else if (isset($user->roles[7])) {
+		// User is the unit head
+		$editable = true;
+		$unithead = true;
+	} else if (isset($user->roles[8])) {
+		// User is Economy
+		$economy = true;
+		$editable = true;
 	}
+
+	//////// What is it?
+	$node->field_comments_to_unit_head = NULL;
+	$node->field_comments_to_dsv_economy = NULL;
+	$node->field_comments_to_vice_head = NULL;
+	////////
 
 	unset($form['field_cancelled']);
 	unset($form['field_sent_to_birgitta_o']);
+
+	// Make conversation fields disabled
+	$form['field_conversation_unit_head']['#disabled'] = TRUE;
+	$form['field_conversation_dsv_economy']['#disabled'] = TRUE;
+	$form['field_conversation_vice_head']['#disabled'] = TRUE;
+
+	// Change comments titles so they correspond to the current user
+	if ($editable) {
+		$form['field_comments_to_unit_head']['und'][0]['value']['#title'] = 'Comments to the author from Unit head';
+		$form['field_comments_to_dsv_economy']['und'][0]['value']['#title'] = 'Comments to the author from DSV economy';
+		$form['field_comments_to_vice_head']['und'][0]['value']['#title'] = 'Comments to the author from Vice head';
+	}
 
 	// Hide revision logs
 	$form['revision_information']['#access'] = FALSE;
@@ -17,8 +58,15 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	// Set Author to be a current user.
 	$form['field_dsv_person_in_charge']['und'][0]['uid']['#default_value'] = $user->uid;
 
+	// Hide conversation_unit_head if it is a fresh node.
+	if (!$node) {
+		unset($form['field_conversation_unit_head']);
+	}
+
 	// Before Unit Head OK
 	if (!$node || isset($node->field_ok_from_unit_head) && !$node->field_ok_from_unit_head['und'][0]['value']) {
+		unset($form['field_conversation_dsv_economy']);
+		unset($form['field_conversation_vice_head']);
 		unset($form['field_attachment_to_dsv_economy']);
 		unset($form['field_attachments_to_vice_head']);
 		unset($form['field_comments_to_dsv_economy']);
@@ -28,9 +76,14 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 
 	// After Unit Head OK
 	if (isset($node->field_ok_from_unit_head) && $node->field_ok_from_unit_head['und'][0]['value']) {
+		unset($form['field_conversation_unit_head']);
 		unset($form['field_attachment_unit']);
 		unset($form['field_comments_to_unit_head']);
-		unset($form['field_unit_head']);
+		$form['field_unit_head']['#disabled'] = TRUE;
+	}
+
+	if (isset($node->field_conversation_dsv_economy) && !$node->field_conversation_dsv_economy['und'][0]['value']) {
+		unset($form['field_conversation_dsv_economy']); 
 	}
 
 	// Before Economy OK
@@ -48,6 +101,10 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		unset($form['field_attachment_unit']);
 	}
 
+	if (isset($node->field_conversation_vice_head) && !$node->field_conversation_vice_head['und'][0]['value']) {
+		unset($form['field_conversation_vice_head']); 
+	}
+
 	// Before Vice Head OK
 	if (isset($node->field_ok_from_uno) && !$node->field_ok_from_uno['und'][0]['value']) {
 		unset($form['field_final_attachments']);
@@ -63,6 +120,71 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	return true;
 }
 
+/**
+* Implementation of hook_node_prepare().
+**/
+function projprop_edit_node_load($node) {
+	$node_is_edited = strpos(request_path(), 'edit') !== FALSE;
+	if ($node_is_edited) {
+		$node[array_keys($node)[0]]->field_comments_to_unit_head= NULL;
+		$node[array_keys($node)[0]]->field_comments_to_dsv_economy = NULL;
+		$node[array_keys($node)[0]]->field_comments_to_vice_head = NULL;
+	}
+}
+
+/**
+* Implementation of hook_node_presave().
+**/
+function projprop_edit_node_presave($node) {
+//var_dump($node->field_comments_to_unit_head);
+//break;
+/*
+	if (!$node->field_comments_to_unit_head['und']) {
+		$node->field_comments_to_unit_head = NULL;
+	}
+	if (!$node->field_comments_to_dsv_economy['und']) {
+		$node->field_comments_to_dsv_economy = NULL;
+	}
+	if (!$node->field_comments_to_vice_head['und']) {
+		$node->field_comments_to_vice_head = NULL;
+	}
+*/
+global $user;
+$user=user_load($user->uid);
+
+	if ($node->field_comments_to_unit_head) {
+		$comment = $node->field_comments_to_unit_head['und'][0]['value'];
+		//$editors = array_map(create_function('$o', 'return $o->uid;'), node_revision_list($node));
+		//var_dump(node_revision_list($node));
+		//var_dump($editors);
+		//$lasteditor = array_values($editors)[0];
+		//$editor = user_load($lasteditor);
+		$date = format_date(time(), 'medium');
+		$string_to_append = $user->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
+		$node->field_conversation_unit_head['und'][0]['value'] = $string_to_append . $node->field_conversation_unit_head['und'][0]['value'];
+	}
+
+	if ($node->field_comments_to_dsv_economy) {
+		$comment = $node->field_comments_to_dsv_economy['und'][0]['value'];
+		$editors = array_unique(array_map(create_function('$o', 'return $o->uid;'), node_revision_list($node)));
+		$lasteditor = end($editors);
+		$editor = user_load($lasteditor);
+		$date = format_date(time(), 'medium');
+		$string_to_append = $editor->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
+		$node->field_conversation_dsv_economy['und'][0]['value'] = $string_to_append . $node->field_conversation_dsv_economy['und'][0]['value'];
+	}
+
+	if ($node->field_comments_to_vice_head) {
+		$comment = $node->field_comments_to_vice_head['und'][0]['value'];
+		$editors = array_unique(array_map(create_function('$o', 'return $o->uid;'), node_revision_list($node)));
+		$lasteditor = end($editors);
+		$editor = user_load($lasteditor);
+		$date = format_date(time(), 'medium');
+		$string_to_append = $editor->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
+		$node->field_conversation_vice_head['und'][0]['value'] = $string_to_append . $node->field_conversation_vice_head['und'][0]['value'];
+	}
+
+}
 
 /**
 * Implementation of hook_menu().
