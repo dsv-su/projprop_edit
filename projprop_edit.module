@@ -58,8 +58,27 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		unset($form['field_conversation_unit_head']);
 	}
 
+	if (!$node) {
+		// We hide most of the fields when the proposal is a new one.
+		unset($form['field_is_dsv_coordinating']);
+		unset($form['field_require_forskningsservice']);
+		unset($form['field_other_coordinator']);
+		unset($form['field_funding_organization']);
+		unset($form['field_program_call_target']);
+		unset($form['field_deadline']);
+		unset($form['field_duration']);
+		unset($form['field_total_budget_amount_for_co']);
+		unset($form['field_total_budget_amount_for_ds']);
+		unset($form['field_currency']);
+		unset($form['field_co_financing_needed']);
+		unset($form['field_forskningsservice_informed']);
+		unset($form['field_co_financing_covered_by']);
+		unset($form['field_percent_oh_costs_covered']);
+	}
+
 	// Before Unit Head OK
 	if (!$node || isset($node->field_ok_from_unit_head) && !$node->field_ok_from_unit_head['und'][0]['value']) {
+
 		unset($form['field_conversation_dsv_economy']);
 		unset($form['field_conversation_vice_head']);
 		unset($form['field_attachment_to_dsv_economy']);
@@ -131,6 +150,9 @@ function projprop_edit_node_load($node) {
 * Implementation of hook_node_presave().
 **/
 function projprop_edit_node_presave($node) {
+
+	global $user;
+	$user = user_load($user->uid);
 
 	if (!$node->field_comments_to_unit_head['und']) {
 		$node->field_comments_to_unit_head = NULL;
