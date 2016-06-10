@@ -10,6 +10,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	$unithead = false;
 	$vicehead = false;
 	$admin = false;
+
 	if (isset($user->roles[3])) {
 		// User is an administrator
 		$editable = true;
@@ -30,12 +31,6 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		$economy = true;
 		$editable = true;
 	}
-
-	//////// What is it?
-	$node->field_comments_to_unit_head = NULL;
-	$node->field_comments_to_dsv_economy = NULL;
-	$node->field_comments_to_vice_head = NULL;
-	////////
 
 	unset($form['field_cancelled']);
 	unset($form['field_sent_to_birgitta_o']);
@@ -126,7 +121,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 function projprop_edit_node_load($node) {
 	$node_is_edited = strpos(request_path(), 'edit') !== FALSE;
 	if ($node_is_edited) {
-		$node[array_keys($node)[0]]->field_comments_to_unit_head= NULL;
+		$node[array_keys($node)[0]]->field_comments_to_unit_head = NULL;
 		$node[array_keys($node)[0]]->field_comments_to_dsv_economy = NULL;
 		$node[array_keys($node)[0]]->field_comments_to_vice_head = NULL;
 	}
@@ -136,9 +131,7 @@ function projprop_edit_node_load($node) {
 * Implementation of hook_node_presave().
 **/
 function projprop_edit_node_presave($node) {
-//var_dump($node->field_comments_to_unit_head);
-//break;
-/*
+
 	if (!$node->field_comments_to_unit_head['und']) {
 		$node->field_comments_to_unit_head = NULL;
 	}
@@ -148,17 +141,12 @@ function projprop_edit_node_presave($node) {
 	if (!$node->field_comments_to_vice_head['und']) {
 		$node->field_comments_to_vice_head = NULL;
 	}
-*/
-global $user;
-$user=user_load($user->uid);
+
+//var_dump($node->field_comments_to_unit_head);
+//break;
 
 	if ($node->field_comments_to_unit_head) {
 		$comment = $node->field_comments_to_unit_head['und'][0]['value'];
-		//$editors = array_map(create_function('$o', 'return $o->uid;'), node_revision_list($node));
-		//var_dump(node_revision_list($node));
-		//var_dump($editors);
-		//$lasteditor = array_values($editors)[0];
-		//$editor = user_load($lasteditor);
 		$date = format_date(time(), 'medium');
 		$string_to_append = $user->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
 		$node->field_conversation_unit_head['und'][0]['value'] = $string_to_append . $node->field_conversation_unit_head['und'][0]['value'];
@@ -166,21 +154,15 @@ $user=user_load($user->uid);
 
 	if ($node->field_comments_to_dsv_economy) {
 		$comment = $node->field_comments_to_dsv_economy['und'][0]['value'];
-		$editors = array_unique(array_map(create_function('$o', 'return $o->uid;'), node_revision_list($node)));
-		$lasteditor = end($editors);
-		$editor = user_load($lasteditor);
 		$date = format_date(time(), 'medium');
-		$string_to_append = $editor->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
+		$string_to_append = $user->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
 		$node->field_conversation_dsv_economy['und'][0]['value'] = $string_to_append . $node->field_conversation_dsv_economy['und'][0]['value'];
 	}
 
 	if ($node->field_comments_to_vice_head) {
 		$comment = $node->field_comments_to_vice_head['und'][0]['value'];
-		$editors = array_unique(array_map(create_function('$o', 'return $o->uid;'), node_revision_list($node)));
-		$lasteditor = end($editors);
-		$editor = user_load($lasteditor);
 		$date = format_date(time(), 'medium');
-		$string_to_append = $editor->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
+		$string_to_append = $user->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
 		$node->field_conversation_vice_head['und'][0]['value'] = $string_to_append . $node->field_conversation_vice_head['und'][0]['value'];
 	}
 
