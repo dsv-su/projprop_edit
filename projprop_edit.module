@@ -51,7 +51,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	$form['revision_information']['#access'] = FALSE;
 
 	// Set Author to be a current user.
-	if (!$node) {
+	if (!$node->field_dsv_person_in_charge) {
 		$form['field_dsv_person_in_charge']['und'][0]['uid']['#default_value'] = $user->uid;
 	}
 
