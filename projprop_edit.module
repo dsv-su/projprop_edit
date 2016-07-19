@@ -32,8 +32,17 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		$editable = true;
 	}
 
+	// Hide 'Remove' buttons from respective file pickers for just ordinary users
+	if (!$economy && !$vicehead) {
+		$form['field_attachment_to_dsv_economy']['#attributes']['class'][] = 'hide-remove-button';
+	}
+	if (!$vicehead) {
+		$form['field_attachments_to_vice_head']['#attributes']['class'][] = 'hide-remove-button';
+	}
+
 	unset($form['field_cancelled']);
 	unset($form['field_sent_to_birgitta_o']);
+	unset($form['field_economy_owner']);
 
 	// Make conversation fields disabled
 	$form['field_conversation_unit_head']['#disabled'] = TRUE;
@@ -211,6 +220,13 @@ function projprop_edit_menu() {
     //'access arguments' => array('access content'),
     'delivery callback' => 'projprop_edit_callback',  // Magic goes here
   );
+   $qitems['node/economy-own/%node'] = array(
+    'page arguments' => array(1),
+    'type' => MENU_CALLBACK,
+    'access callback' => TRUE,
+    //'access arguments' => array('access content'),
+    'delivery callback' => 'projprop_edit_callback',  // Magic goes here
+  );
   return $items;
 }
 
@@ -242,14 +258,24 @@ function projprop_edit_menu() {
 }
 */
 function projprop_edit_callback($node) {
-	// Only Proposal nodes are allowed!
+	global $user;
+	$user = user_load($user->uid);
 	$data = array(true);
 	$node = node_load(arg(2));
 	$approvalby = arg(3);
+
+	// Only Proposal nodes are allowed!
 	if ($node->type != 'project_proposal') {
 		return t('Invalid node type!');
 	}
+
 	switch (arg(3)) {
+		case 'own':
+			$node->field_economy_owner[LANGUAGE_NONE][0]['uid'] = $user->uid;
+			break;
+		case 'unown':
+			$node->field_economy_owner[LANGUAGE_NONE][0]['uid'] = null;
+			break;
 		case 'cancel':
 			$node->field_cancelled[LANGUAGE_NONE][0]['value'] = 1;
 			break;
