@@ -1,5 +1,15 @@
 <?php
 
+// Cancelled proposals cannot be edited.
+function projprop_edit_node_access($node, $op, $account) {
+	if ($op == 'update') {
+		if ($node->field_cancelled['und'][0]['value']) {
+			return NODE_ACCESS_DENY;
+		}
+	}
+}
+
+
 function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	global $user;
 
@@ -41,6 +51,8 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	}
 
 	unset($form['field_cancelled']);
+	unset($form['field_request_to_dsv_economy']);
+	unset($form['field_request_to_vice_head']);
 	unset($form['field_sent_to_birgitta_o']);
 	unset($form['field_economy_owner']);
 
@@ -51,15 +63,15 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 
 	// Change comments titles so they correspond to the current user
 	if ($editable) {
-		$form['field_comments_to_unit_head']['und'][0]['value']['#title'] = 'Comments to the author from Unit head';
-		$form['field_comments_to_dsv_economy']['und'][0]['value']['#title'] = 'Comments to the author from DSV economy';
-		$form['field_comments_to_vice_head']['und'][0]['value']['#title'] = 'Comments to the author from Vice head';
+		$form['field_comments_to_unit_head']['und'][0]['value']['#title'] = 'Comments to the researcher from Unit head';
+		$form['field_comments_to_dsv_economy']['und'][0]['value']['#title'] = 'Comments to the researcher from DSV economy';
+		$form['field_comments_to_vice_head']['und'][0]['value']['#title'] = 'Comments to the researcher from Vice head';
 	}
 
 	// Hide revision logs
 	$form['revision_information']['#access'] = FALSE;
 
-	// Set Author to be a current user.
+	// Set Author/Researcher to be a current user.
 	if (!$node->field_dsv_person_in_charge) {
 		$form['field_dsv_person_in_charge']['und'][0]['uid']['#default_value'] = $user->uid;
 	}
@@ -210,59 +222,34 @@ function projprop_edit_menu() {
     'page arguments' => array(1),
     'type' => MENU_CALLBACK,
     'access callback' => TRUE,
-    //'access arguments' => array('access content'),
     'delivery callback' => 'projprop_edit_callback',  // Magic goes here
   );
   $items['node/cancel/%node'] = array(
   	'page arguments' => array(1),
     'type' => MENU_CALLBACK,
     'access callback' => TRUE,
-    //'access arguments' => array('access content'),
     'delivery callback' => 'projprop_edit_callback',  // Magic goes here
   );
    $qitems['node/economy-own/%node'] = array(
     'page arguments' => array(1),
     'type' => MENU_CALLBACK,
     'access callback' => TRUE,
-    //'access arguments' => array('access content'),
     'delivery callback' => 'projprop_edit_callback',  // Magic goes here
   );
   return $items;
 }
 
-/*function projprop_edit_cancel_callback($node) {
-	// Only Proposal nodes are allowed!
-	echo 'DFDFD';
-	$data = array(true);
-	$node = node_load(arg(2));
-	//$approvalby = arg(3);
-	if ($node->type != 'project_proposal') {
-		return t('Invalid node type!');
-	}
-	switch (arg(3)) {
-		case 'unit-head':
-			$node->field_ok_from_unit_head[LANGUAGE_NONE][0]['value'] = 1;
-			break;
-		case 'dsv-economy':
-			$node->field_ok_from_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
-			break;
-		case 'vice-head':
-			$node->field_ok_from_uno[LANGUAGE_NONE][0]['value'] = 1;
-			break;		
-		default:
-			break;
-	}
+//function projprop_edit_approve() {
+//	return FALSE;
+//}
 
-//	node_save($node);
-	drupal_json_output($data);
-}
-*/
 function projprop_edit_callback($node) {
 	global $user;
 	$user = user_load($user->uid);
 	$data = array(true);
 	$node = node_load(arg(2));
 	$approvalby = arg(3);
+	$researcher = $node->field_dsv_person_in_charge[LANGUAGE_NONE][0]['uid'];
 
 	// Only Proposal nodes are allowed!
 	if ($node->type != 'project_proposal') {
@@ -283,14 +270,35 @@ function projprop_edit_callback($node) {
 			$node->field_cancelled[LANGUAGE_NONE][0]['value'] = 0;
 			break;
 		case 'unit-head':
+			if (!isset($user->roles[7]) && !isset($user->roles[3])) {
+				drupal_json_output(false);
+			}
 			$node->field_ok_from_unit_head[LANGUAGE_NONE][0]['value'] = 1;
 			break;
+		case 'request-dsv-economy':
+			if (!($user->uid == $researcher) && !isset($user->roles[3])) {
+				drupal_json_output(false);
+			}
+			$node->field_request_to_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
+			break;
 		case 'dsv-economy':
+			if (!isset($user->roles[8]) && !isset($user->roles[3])) {
+				drupal_json_output(false);
+			}
 			$node->field_ok_from_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
 			break;
+		case 'request-vice-head':
+			if (!($user->uid == $researcher) && !isset($user->roles[3])) {
+				drupal_json_output(false);
+			}
+			$node->field_request_to_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
+			break;
 		case 'vice-head':
+			if (!isset($user->roles[5]) && !isset($user->roles[3])) {
+				drupal_json_output(false);
+			}
 			$node->field_ok_from_uno[LANGUAGE_NONE][0]['value'] = 1;
-			break;		
+			break;
 		default:
 			break;
 	}
