@@ -230,7 +230,7 @@ function projprop_edit_menu() {
     'access callback' => TRUE,
     'delivery callback' => 'projprop_edit_callback',  // Magic goes here
   );
-   $qitems['node/economy-own/%node'] = array(
+   $items['node/economy-own/%node'] = array(
     'page arguments' => array(1),
     'type' => MENU_CALLBACK,
     'access callback' => TRUE,
@@ -259,9 +259,11 @@ function projprop_edit_callback($node) {
 	switch (arg(3)) {
 		case 'own':
 			$node->field_economy_owner[LANGUAGE_NONE][0]['uid'] = $user->uid;
+			$data = $user->realname;
 			break;
 		case 'unown':
 			$node->field_economy_owner[LANGUAGE_NONE][0]['uid'] = null;
+			$data = 'not yet assigned';
 			break;
 		case 'cancel':
 			$node->field_cancelled[LANGUAGE_NONE][0]['value'] = 1;
