@@ -62,7 +62,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	$form['revision_information']['#access'] = FALSE;
 
 	// Set Author/Researcher to be a current user.
-	if (!$node->field_dsv_person_in_charge) {
+	if (!isset($node->field_dsv_person_in_charge)) {
 		$form['field_dsv_person_in_charge']['und'][0]['uid']['#default_value'] = $user->uid;
 	}
 
@@ -124,7 +124,7 @@ function projprop_edit_node_presave($node) {
 		$comment = $node->field_comment['und'][0]['value'];
 		$date = format_date(time(), 'medium');
 		$string_to_append = $user->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
-		$node->field_conversation['und'][0]['value'] = $string_to_append . $node->field_conversation['und'][0]['value'];
+		$node->field_conversation['und'][0]['value'] = $string_to_append . (isset($node->field_conversation) ? $node->field_conversation['und'][0]['value'] : '');
 	}
 
 //var_dump($node->field_comments_to_unit_head);
