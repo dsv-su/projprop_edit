@@ -6,12 +6,8 @@ function projprop_edit_node_access($node, $op, $account) {
 		if ($node->field_cancelled['und'][0]['value']) {
 			return NODE_ACCESS_DENY;
 		}
-		if (!$node->field_request_to_dsv_economy['und'][0]['value'] && isset($account->roles[8])) {
-            return NODE_ACCESS_DENY;
-        }
 	}
 }
-
 
 function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	global $user;
@@ -47,10 +43,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 
 	// Hide 'Remove' buttons from respective file pickers for just ordinary users
 	if (!$economy && !$vicehead) {
-		$form['field_attachment_to_dsv_economy']['#attributes']['class'][] = 'hide-remove-button';
-	}
-	if (!$vicehead) {
-		$form['field_attachments_to_vice_head']['#attributes']['class'][] = 'hide-remove-button';
+		$form['field_attachments']['#attributes']['class'][] = 'hide-remove-button';
 	}
 
 	unset($form['field_cancelled']);
@@ -63,16 +56,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	unset($form['field_ok_from_uno']);
 
 	// Make conversation fields disabled
-	$form['field_conversation_unit_head']['#disabled'] = TRUE;
-	$form['field_conversation_dsv_economy']['#disabled'] = TRUE;
-	$form['field_conversation_vice_head']['#disabled'] = TRUE;
-
-	// Change comments titles so they correspond to the current user
-	if ($editable) {
-		$form['field_comments_to_unit_head']['und'][0]['value']['#title'] = 'Comments to the researcher from Unit head';
-		$form['field_comments_to_dsv_economy']['und'][0]['value']['#title'] = 'Comments to the researcher from DSV economy';
-		$form['field_comments_to_vice_head']['und'][0]['value']['#title'] = 'Comments to the researcher from Vice head';
-	}
+	$form['field_conversation']['#disabled'] = TRUE;
 
 	// Hide revision logs
 	$form['revision_information']['#access'] = FALSE;
@@ -82,30 +66,15 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		$form['field_dsv_person_in_charge']['und'][0]['uid']['#default_value'] = $user->uid;
 	}
 
+	$form['field_comment']['und'][0]['value']['#title'] = 'Your comments';
 	// Hide conversation_unit_head if it is a fresh node.
 	if (!$node) {
-		unset($form['field_conversation_unit_head']);
+		unset($form['field_conversation']);
+		$form['field_comment']['und'][0]['value']['#title'] .= ' (you can describe your proposal here)';
 	}
-/*
-	if (!$node) {
-		// We hide most of the fields when the proposal is a new one.
-		unset($form['field_is_dsv_coordinating']);
-		unset($form['field_require_forskningsservice']);
-		unset($form['field_other_coordinator']);
-		unset($form['field_funding_organization']);
-		unset($form['field_program_call_target']);
-		unset($form['field_deadline']);
-		unset($form['field_duration']);
-		unset($form['field_total_budget_amount_for_co']);
-		unset($form['field_total_budget_amount_for_ds']);
-		unset($form['field_currency']);
-		unset($form['field_co_financing_needed']);
-		unset($form['field_forskningsservice_informed']);
-		unset($form['field_co_financing_covered_by']);
-		unset($form['field_percent_oh_costs_covered']);
-	}
-*/
+
 	// Before Unit Head OK
+	/*
 	if (!$node || (isset($node->field_ok_from_unit_head) && !$node->field_ok_from_unit_head['und'][0]['value']) || $unithead) {
 		unset($form['field_is_dsv_coordinating']);
 		unset($form['field_require_forskningsservice']);
@@ -121,86 +90,12 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		unset($form['field_forskningsservice_informed']);
 		unset($form['field_co_financing_covered_by']);
 		unset($form['field_percent_oh_costs_covered']);
-
-		unset($form['field_conversation_dsv_economy']);
-		unset($form['field_conversation_vice_head']);
-		unset($form['field_attachment_to_dsv_economy']);
-		unset($form['field_attachments_to_vice_head']);
-		unset($form['field_comments_to_dsv_economy']);
-		unset($form['field_comments_to_vice_head']);
-		unset($form['field_final_attachments']);
 	}
+	*/
 
-	// After Unit Head OK
+	// Lock Unit Head once he/she is OK
 	if (isset($node->field_ok_from_unit_head) && $node->field_ok_from_unit_head['und'][0]['value']) {
-		if (!$unithead) {
-			unset($form['field_conversation_unit_head']);
-			unset($form['field_attachment_unit']);
-		}
-		unset($form['field_comments_to_unit_head']);
 		$form['field_unit_head']['#disabled'] = TRUE;
-	}
-
-	if (!$node->field_request_to_dsv_economy['und'][0]['value']) {
-		unset($form['field_comments_to_dsv_economy']);
-		unset($form['field_conversation_dsv_economy']);
-	} 
-
-	if (isset($node->field_conversation_dsv_economy) && !$node->field_conversation_dsv_economy['und'][0]['value']) {
-		unset($form['field_conversation_dsv_economy']); 
-	}
-
-	// Before Economy OK
-	if (isset($node->field_ok_from_dsv_economy) && !$node->field_ok_from_dsv_economy['und'][0]['value']) {
-		unset($form['field_attachments_to_vice_head']);
-		unset($form['field_comments_to_vice_head']);
-		unset($form['field_final_attachments']);
-	}
-
-	// After Economy OK
-	if (isset($node->field_ok_from_dsv_economy) && $node->field_ok_from_dsv_economy['und'][0]['value']) {
-		unset($form['field_attachment_to_dsv_economy']);
-		unset($form['field_comments_to_dsv_economy']);
-		unset($form['field_conversation_dsv_economy']);
-		//unset($form['field_ok_from_unit_head']);
-		unset($form['field_attachment_unit']);
-
-
-		// unset some economy fields:
-		if (!$economy && !$vicehead) {
-			unset($form['title']);
-			unset($form['field_dsv_person_in_charge']);
-			unset($form['field_is_dsv_coordinating']);
-			unset($form['field_require_forskningsservice']);
-			unset($form['field_other_coordinator']);
-			unset($form['field_funding_organization']);
-			unset($form['field_program_call_target']);
-			unset($form['field_deadline']);
-			unset($form['field_duration']);
-			unset($form['field_total_budget_amount_for_co']);
-			unset($form['field_total_budget_amount_for_ds']);
-			unset($form['field_currency']);
-			unset($form['field_co_financing_needed']);
-			unset($form['field_forskningsservice_informed']);
-			unset($form['field_co_financing_covered_by']);
-			unset($form['field_percent_oh_costs_covered']);
-		}
-	}
-
-	if (isset($node->field_conversation_vice_head) && !$node->field_conversation_vice_head['und'][0]['value']) {
-		unset($form['field_conversation_vice_head']); 
-	}
-
-	// Before Vice Head OK
-	if (isset($node->field_ok_from_uno) && !$node->field_ok_from_uno['und'][0]['value']) {
-		unset($form['field_final_attachments']);
-	}
-
-	// After Vice Head OK
-	if (isset($node->field_ok_from_uno) && $node->field_ok_from_uno['und'][0]['value']) {
-		unset($form['field_attachments_to_vice_head']);
-		unset($form['field_comments_to_vice_head']);
-		//unset($form['field_ok_from_dsv_economy']);
 	}
 
 	return true;
@@ -212,9 +107,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 function projprop_edit_node_load($node) {
 	$node_is_edited = strpos(request_path(), 'edit') !== FALSE;
 	if ($node_is_edited) {
-		$node[array_keys($node)[0]]->field_comments_to_unit_head = NULL;
-		$node[array_keys($node)[0]]->field_comments_to_dsv_economy = NULL;
-		$node[array_keys($node)[0]]->field_comments_to_vice_head = NULL;
+		$node[array_keys($node)[0]]->field_comment = NULL;
 	}
 }
 
@@ -226,39 +119,32 @@ function projprop_edit_node_presave($node) {
 	global $user;
 	$user = user_load($user->uid);
 
-	if (!$node->field_comments_to_unit_head['und']) {
-		$node->field_comments_to_unit_head = NULL;
-	}
-	if (!$node->field_comments_to_dsv_economy['und']) {
-		$node->field_comments_to_dsv_economy = NULL;
-	}
-	if (!$node->field_comments_to_vice_head['und']) {
-		$node->field_comments_to_vice_head = NULL;
+	if ($node->field_comment['und']) {
+		//$node->field_comment = NULL;
+		$comment = $node->field_comment['und'][0]['value'];
+		$date = format_date(time(), 'medium');
+		$string_to_append = $user->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
+		$node->field_conversation['und'][0]['value'] = $string_to_append . $node->field_conversation['und'][0]['value'];
 	}
 
 //var_dump($node->field_comments_to_unit_head);
 //break;
+	
+/*
+	if (isset($user->roles[5])) {
+		// User is the vice head
 
-	if ($node->field_comments_to_unit_head) {
-		$comment = $node->field_comments_to_unit_head['und'][0]['value'];
-		$date = format_date(time(), 'medium');
+	} else if (isset($user->roles[7])) {
+		// User is the unit head
 		$string_to_append = $user->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
 		$node->field_conversation_unit_head['und'][0]['value'] = $string_to_append . $node->field_conversation_unit_head['und'][0]['value'];
-	}
-
-	if ($node->field_comments_to_dsv_economy) {
-		$comment = $node->field_comments_to_dsv_economy['und'][0]['value'];
-		$date = format_date(time(), 'medium');
+	} else if (isset($user->roles[8])) {
+		// User is Economy
 		$string_to_append = $user->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
 		$node->field_conversation_dsv_economy['und'][0]['value'] = $string_to_append . $node->field_conversation_dsv_economy['und'][0]['value'];
-	}
 
-	if ($node->field_comments_to_vice_head) {
-		$comment = $node->field_comments_to_vice_head['und'][0]['value'];
-		$date = format_date(time(), 'medium');
-		$string_to_append = $user->realname . ' on ' .$date . ': ' . "\r\n" . $comment . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
-		$node->field_conversation_vice_head['und'][0]['value'] = $string_to_append . $node->field_conversation_vice_head['und'][0]['value'];
 	}
+*/
 
 }
 
@@ -287,10 +173,6 @@ function projprop_edit_menu() {
   return $items;
 }
 
-//function projprop_edit_approve() {
-//	return FALSE;
-//}
-
 function projprop_edit_callback($node) {
 	global $user;
 	$user = user_load($user->uid);
@@ -303,6 +185,8 @@ function projprop_edit_callback($node) {
 	if ($node->type != 'project_proposal') {
 		return t('Invalid node type!');
 	}
+
+	$node->field_comment = NULL;
 
 	switch (arg(3)) {
 		case 'own':
@@ -325,12 +209,14 @@ function projprop_edit_callback($node) {
 			}
 			$node->field_ok_from_unit_head[LANGUAGE_NONE][0]['value'] = 1;
 			break;
+		/*
 		case 'request-dsv-economy':
 			if (!($user->uid == $researcher) && !isset($user->roles[3])) {
 				drupal_json_output(false);
 			}
 			$node->field_request_to_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
 			break;
+			*/
 		case 'dsv-economy':
 			if (!isset($user->roles[8]) && !isset($user->roles[3])) {
 				drupal_json_output(false);
@@ -369,6 +255,7 @@ function projprop_edit_callback($node) {
 function projprop_edit_menu_alter(&$items) {
 	// Hive 'View' tab on node edit view.
 	$items['node/%node/edit']['type'] = MENU_CALLBACK;
+	var_dump($items);
 }
 
 /**
