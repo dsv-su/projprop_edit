@@ -224,7 +224,7 @@ function projprop_edit_callback($node) {
 			$node->field_ok_from_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'request-vice-head':
-			if (!($user->uid == $researcher) && !isset($user->roles[3])) {
+			if (!($user->uid == $researcher) && (!isset($user->roles[3])) && (!isset($user->roles[5])) && (!isset($user->roles[6])) && (!isset($user->roles[7])) && (!isset($user->roles[8]))) {
 				drupal_json_output(false);
 			}
 			$node->field_request_to_vice_head[LANGUAGE_NONE][0]['value'] = 1;
