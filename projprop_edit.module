@@ -61,6 +61,20 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	// Hide revision logs
 	$form['revision_information']['#access'] = FALSE;
 
+	// Remove 'delete' button.
+	$form['actions']['delete']['#access'] = FALSE;
+
+	// Remove 'preview' button.
+	$form['actions']['preview']['#access'] = FALSE;
+
+	$form['actions']['cancel'] = array(
+		'#type' => 'submit',
+		'#value' => t('Cancel'),
+		'#access' => TRUE,
+		'#weight' => 20,
+		'#submit' => array('projprop_form_cancel', 'node_form_submit_build_node')
+	);
+
 	// Set Author/Researcher to be a current user.
 	if (!isset($node->field_dsv_person_in_charge)) {
 		$form['field_dsv_person_in_charge']['und'][0]['uid']['#default_value'] = $user->uid;
@@ -74,6 +88,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	}
 
 	// Before Unit Head OK
+	// Unset some fields
 	/*
 	if (!$node || (isset($node->field_ok_from_unit_head) && !$node->field_ok_from_unit_head['und'][0]['value']) || $unithead) {
 		unset($form['field_is_dsv_coordinating']);
@@ -93,12 +108,36 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	}
 	*/
 
+	// After Economy OK
+	if (isset($node->field_ok_from_dsv_economy) && $node->field_ok_from_dsv_economy['und'][0]['value'] && !$economy && !$vicehead) {
+		$form['field_is_dsv_coordinating']['#disabled'] = TRUE;
+		$form['field_require_forskningsservice']['#disabled'] = TRUE;
+		$form['field_other_coordinator']['#disabled'] = TRUE;
+		$form['field_funding_organization']['#disabled'] = TRUE;
+		$form['field_deadline']['#disabled'] = TRUE;
+		$form['field_duration']['#disabled'] = TRUE;
+		$form['field_total_budget_amount_for_co']['#disabled'] = TRUE;
+		$form['field_total_budget_amount_for_ds']['#disabled'] = TRUE;
+		$form['field_currency']['#disabled'] = TRUE;
+		$form['field_co_financing_needed']['#disabled'] = TRUE;
+		$form['field_co_financing_covered_by']['#disabled'] = TRUE;
+		$form['field_percent_oh_costs_covered']['#disabled'] = TRUE;
+	}
+
 	// Lock Unit Head once he/she is OK
 	if (isset($node->field_ok_from_unit_head) && $node->field_ok_from_unit_head['und'][0]['value']) {
 		$form['field_unit_head']['#disabled'] = TRUE;
 	}
 
 	return true;
+}
+
+/**
+ * Custom cancel button callback.
+ */
+function projprop_form_cancel($form, &$form_state) {
+  $url = 'proposals';
+  drupal_goto($url);
 }
 
 /**
@@ -255,7 +294,6 @@ function projprop_edit_callback($node) {
 function projprop_edit_menu_alter(&$items) {
 	// Hive 'View' tab on node edit view.
 	$items['node/%node/edit']['type'] = MENU_CALLBACK;
-	var_dump($items);
 }
 
 /**
