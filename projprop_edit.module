@@ -20,6 +20,14 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	$vicehead = false;
 	$admin = false;
 
+	db_insert('login_history')
+	->fields(array(
+		'uid' => $user->uid,
+		'login' => time(),
+		'hostname' => ip_address()
+	))
+	->execute();
+
 	if (isset($user->roles[3])) {
 		// User is an administrator
 		$editable = true;
