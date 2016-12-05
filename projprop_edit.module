@@ -20,6 +20,9 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	$vicehead = false;
 	$admin = false;
 
+    $form['field_dsv_person_in_charge'][LANGUAGE_NONE][0]['uid']['#autocomplete_path'] = 'realname/autocomplete';
+    $form['field_coapplicants'][LANGUAGE_NONE][0]['uid']['#autocomplete_path'] = 'realname/autocomplete';
+
 	db_insert('login_history')
 	->fields(array(
 		'uid' => $user->uid,
@@ -54,6 +57,9 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		$form['field_attachments']['#attributes']['class'][] = 'hide-remove-button';
 	}
 
+	if (!$editable) {
+		$form['field_dsv_person_in_charge']['#disabled'] = TRUE;
+	}
 	unset($form['field_cancelled']);
 	unset($form['field_request_to_dsv_economy']);
 	unset($form['field_request_to_vice_head']);
