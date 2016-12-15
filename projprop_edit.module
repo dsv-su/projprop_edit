@@ -52,6 +52,9 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		$editable = true;
 	}
 
+	// Hide 'Funding approved' for non-admins
+	unset($form['field_approved_funding']);
+
 	// Hide 'Remove' buttons from respective file pickers for just ordinary users
 	if (!$economy && !$vicehead) {
 		$form['field_attachments']['#attributes']['class'][] = 'hide-remove-button';
@@ -293,6 +296,18 @@ function projprop_edit_callback($node) {
 				drupal_json_output(false);
 			}
 			$node->field_sent_to_birgitta_o[LANGUAGE_NONE][0]['value'] = 1;
+			break;
+		case 'funding-yes':
+			if (!($user->uid == $researcher) && !isset($user->roles[5]) && !isset($user->roles[3])) {
+				drupal_json_output(false);
+			}
+			$node->field_approved_funding[LANGUAGE_NONE][0]['value'] = 1;
+			break;
+		case 'funding-no':
+			if (!($user->uid == $researcher) && !isset($user->roles[5]) && !isset($user->roles[3])) {
+				drupal_json_output(false);
+			}
+			$node->field_approved_funding[LANGUAGE_NONE][0]['value'] = 0;
 			break;
 		default:
 			break;
