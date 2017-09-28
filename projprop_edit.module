@@ -265,14 +265,12 @@ function projprop_edit_callback($node) {
 			}
 			$node->field_ok_from_unit_head[LANGUAGE_NONE][0]['value'] = 1;
 			break;
-		/*
 		case 'request-dsv-economy':
 			if (!($user->uid == $researcher) && !isset($user->roles[3])) {
 				drupal_json_output(false);
 			}
 			$node->field_request_to_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
 			break;
-			*/
 		case 'dsv-economy':
 			if (!isset($user->roles[8]) && !isset($user->roles[3])) {
 				drupal_json_output(false);
