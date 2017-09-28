@@ -56,7 +56,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	unset($form['field_approved_funding']);
 
 	// Hide 'Remove' buttons from respective file pickers for just ordinary users
-	if (!$economy && !$vicehead) {
+	if (!$economy && !$vicehead && isset($node->field_ok_from_dsv_economy) && $node->field_ok_from_dsv_economy['und'][0]['value']) {
 		$form['field_attachments']['#attributes']['class'][] = 'hide-remove-button';
 	}
 
