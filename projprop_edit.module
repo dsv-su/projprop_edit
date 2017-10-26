@@ -9,6 +9,94 @@ function projprop_edit_node_access($node, $op, $account) {
 	}
 }
 
+function projprop_edit_extra_validate(&$form, &$form_state) {
+	$oldfilesFIDs = (isset($form_state['storage']['attachments']) ? $form_state['storage']['attachments'] : false);
+	$oldfilesFIDs[] = 0; // we add this because new files suddenly lists a file with fid = 0.. weird!
+
+	if ($form_state['values']['field_attachments']['und']) {
+		$newfilesFIDs = array_map(create_function('$o', 'return $o["fid"];'), $form_state['values']['field_attachments']['und']);
+	} else {
+		$newfilesFIDs = array();
+	}
+
+	$diff = array_diff($newfilesFIDs, $oldfilesFIDs);
+
+	//if (true) { //for test!!!!!!!!
+	if (!isset($form_state['storage']['confirm']) && !empty($diff) &&
+		$form_state['values']['field_ok_from_dsv_economy'][LANGUAGE_NONE]['0']['value'] == 1)
+	{
+		$form_state['storage']['changed'] = TRUE;
+		dpm($form_state['values']['field_ok_from_dsv_economy'][LANGUAGE_NONE]['0']['value']);
+		dpm('You have edited the attachments that have already been agreed by DSV economy. Please confirm whether you have changed the budget information or not.', '', 'warning');
+		$form_state['storage']['confirm'] = TRUE; // this will cause the form to be rebuilt, entering the confirm part of the form
+		$form_state['rebuild'] = TRUE; // along with this
+		return false;
+	} else {
+		$form_state['storage']['changed'] = FALSE;
+		return true;
+	}
+}
+
+function projprop_edit_form_submit_changed(&$form, &$form_state) {
+	// Flush Economy's OK and add Request to Economy.
+	$form['field_request_to_dsv_economy']['#parents'] = array('field_request_to_dsv_economy');
+	form_set_value($form['field_request_to_dsv_economy'], array('und' => array(0 => array('value' => 1))), $form_state);
+	$form['field_ok_from_dsv_economy']['#parents'] = array('field_ok_from_dsv_economy');
+	form_set_value($form['field_ok_from_dsv_economy'], array('und' => array(0 => array('value' => 0))), $form_state);
+
+	node_form_submit($form, $form_state);
+	$url = 'proposals';
+	drupal_goto($url);
+	return true;
+}
+
+function projprop_edit_form_submit_not_changed(&$form, &$form_state) {
+	node_form_submit($form, $form_state);
+	$url = 'proposals';
+	drupal_goto($url);
+	return true;
+}
+
+function projprop_edit_confirm_attachment_form($form, $question, $path, $description, $yes, $no, $cancel, $name = 'confirm') {
+	$description = isset($description) ? $description : t('This action cannot be undone.');
+
+	// Prepare cancel link.
+	if (isset($_GET['destination'])) {
+		$options = drupal_parse_url($_GET['destination']);
+	} elseif (is_array($path)) {
+		$options = $path;
+	} else {
+		$options = array('path' => $path);
+	}
+
+	drupal_set_title($question, PASS_THROUGH);
+
+	$form['#attributes']['class'][] = 'confirmation';
+	$form['description'] = array('#markup' => $description);
+	$form[$name] = array('#type' => 'hidden', '#value' => 1);
+
+	$form['actions'] = array('#type' => 'actions');
+	$form['actions']['submit_yes'] = array(
+		'#type' => 'submit',
+		'#value' => $yes ? $yes : t('Confirm budget is changed'),
+	);
+	$form['actions']['submit_no'] = array(
+		'#type' => 'submit',
+		'#value' => $no ? $no : t('Confirm budget is NOT changed'),
+	);
+	$form['actions']['cancel'] = array(
+		'#type' => 'link',
+		'#title' => $cancel ? $cancel : t('Cancel'),
+		'#href' => $options['path'],
+		'#options' => $options,
+	);
+	// By default, render the form using theme_confirm_form().
+	if (!isset($form['#theme'])) {
+		$form['#theme'] = 'confirm_form';
+	}
+	return $form;
+}
+
 function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	global $user;
 
@@ -19,6 +107,39 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	$unithead = false;
 	$vicehead = false;
 	$admin = false;
+
+	if(!isset($form_state['storage']['changed'])) {
+		$form['#validate'][] = 'projprop_edit_extra_validate';
+		if (isset($node->field_attachments['und']) && $node->field_attachments['und']) {
+			$oldfilesFIDs = array_map(create_function('$o', 'return $o["fid"];'), $node->field_attachments['und']);
+		}
+		$form_state['storage']['attachments'] = $oldfilesFIDs;
+	} else {
+		$form = projprop_edit_confirm_attachment_form(
+			$form,
+			'New attachment(s) has been found',
+			substr($form['#action'],1),
+			'','Budget changed','Budget NOT changed','Cancel'
+		);
+		// The following is a must. without it, confirm form will not create node.
+		$form['actions']['submit_yes']['#submit'][] = 'projprop_edit_form_submit_changed';
+		$form['actions']['submit_no']['#submit'][] = 'projprop_edit_form_submit_not_changed';
+
+		// Hide all fields except attachments so they're not show to user, but values are saved. Ugly...
+		$form['title']['#access'] = FALSE;
+		foreach ($form as $field_name => $value) {
+			if (strpos($field_name, 'field_') === 0 && $field_name <> 'field_attachments') {
+       				$form[$field_name]['#prefix'] = '<div style="display:none;">';
+					$form[$field_name]['#suffix'] = '</div>';
+    		}
+		}
+
+		// Some fields tend to lose data, e.g. title. to fix this add the following:
+		$form['title']['#default_value'] = $form_state['values']['title'];
+
+		// All entered data is in form_state, so you can fill them manually.
+		// WARNING : CHECK FOR DATA LOSS!!!!!!!
+	}
 
     $form['field_dsv_person_in_charge'][LANGUAGE_NONE][0]['uid']['#autocomplete_path'] = 'realname/autocomplete';
     $form['field_coapplicants'][LANGUAGE_NONE][0]['uid']['#autocomplete_path'] = 'realname/autocomplete';
@@ -58,6 +179,15 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	// Hide 'Remove' buttons from respective file pickers for just ordinary users
 	if (!$economy && !$vicehead && isset($node->field_ok_from_dsv_economy) && $node->field_ok_from_dsv_economy['und'][0]['value']) {
 		$form['field_attachments']['#attributes']['class'][] = 'hide-remove-button';
+	}
+
+	if (isset($form_state['storage']['changed'])) {
+		$form['field_attachments']['#attributes']['class'][] = 'hide-remove-button';
+		$form['field_attachments']['#attributes']['class'][] = 'hide-upload-button';
+		$form['field_attachments']['#attributes']['class'][] = 'black-help-font';
+
+		$form['field_attachments']['und']['#description'] = '
+			<style="color:#000000">You are about to edit the proposal\'s attachments that have already been agreed by DSV economy. It is important that DSV economy is aware if the financial information is changed. Please therefore confirm whether you have changed the budget information or not.</style>';
 	}
 
 	if (!$editable) {
@@ -103,27 +233,6 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		unset($form['field_conversation']);
 		$form['field_comment']['und'][0]['value']['#title'] .= ' (you can describe your proposal here)';
 	}
-
-	// Before Unit Head OK
-	// Unset some fields
-	/*
-	if (!$node || (isset($node->field_ok_from_unit_head) && !$node->field_ok_from_unit_head['und'][0]['value']) || $unithead) {
-		unset($form['field_is_dsv_coordinating']);
-		unset($form['field_require_forskningsservice']);
-		unset($form['field_other_coordinator']);
-		unset($form['field_funding_organization']);
-		unset($form['field_program_call_target']);
-		unset($form['field_deadline']);
-		unset($form['field_duration']);
-		unset($form['field_total_budget_amount_for_co']);
-		unset($form['field_total_budget_amount_for_ds']);
-		unset($form['field_currency']);
-		unset($form['field_co_financing_needed']);
-		unset($form['field_forskningsservice_informed']);
-		unset($form['field_co_financing_covered_by']);
-		unset($form['field_percent_oh_costs_covered']);
-	}
-	*/
 
 	// After Economy OK
 	if (isset($node->field_ok_from_dsv_economy) && $node->field_ok_from_dsv_economy['und'][0]['value'] && !$economy && !$vicehead) {
@@ -171,7 +280,6 @@ function projprop_edit_node_load($node) {
 * Implementation of hook_node_presave().
 **/
 function projprop_edit_node_presave($node) {
-
 	global $user;
 	$user = user_load($user->uid);
 
