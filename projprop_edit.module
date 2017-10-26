@@ -10,7 +10,7 @@ function projprop_edit_node_access($node, $op, $account) {
 }
 
 function projprop_edit_extra_validate(&$form, &$form_state) {
-	$oldfilesFIDs = (isset($form_state['storage']['attachments']) ? $form_state['storage']['attachments'] : false);
+	$oldfilesFIDs = (isset($form_state['storage']['attachments']) ? $form_state['storage']['attachments'] : array());
 	$oldfilesFIDs[] = 0; // we add this because new files suddenly lists a file with fid = 0.. weird!
 
 	if ($form_state['values']['field_attachments']['und']) {
@@ -22,12 +22,9 @@ function projprop_edit_extra_validate(&$form, &$form_state) {
 	$diff = array_diff($newfilesFIDs, $oldfilesFIDs);
 
 	//if (true) { //for test!!!!!!!!
-	if (!isset($form_state['storage']['confirm']) && !empty($diff) &&
-		$form_state['values']['field_ok_from_dsv_economy'][LANGUAGE_NONE]['0']['value'] == 1)
+	if (!isset($form_state['storage']['confirm']) && !empty($diff) && $form_state['storage']['field_ok_from_dsv_economy'])
 	{
 		$form_state['storage']['changed'] = TRUE;
-		dpm($form_state['values']['field_ok_from_dsv_economy'][LANGUAGE_NONE]['0']['value']);
-		dpm('You have edited the attachments that have already been agreed by DSV economy. Please confirm whether you have changed the budget information or not.', '', 'warning');
 		$form_state['storage']['confirm'] = TRUE; // this will cause the form to be rebuilt, entering the confirm part of the form
 		$form_state['rebuild'] = TRUE; // along with this
 		return false;
@@ -113,7 +110,10 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		if (isset($node->field_attachments['und']) && $node->field_attachments['und']) {
 			$oldfilesFIDs = array_map(create_function('$o', 'return $o["fid"];'), $node->field_attachments['und']);
 		}
-		$form_state['storage']['attachments'] = $oldfilesFIDs;
+		$form_state['storage']['attachments'] = isset($oldfilesFIDs) ? $oldfilesFIDs : NULL;
+		if (isset($node->field_ok_from_dsv_economy['und']) && $node->field_ok_from_dsv_economy['und'][0]['value'] == 1) {
+			$form_state['storage']['field_ok_from_dsv_economy'] = TRUE;
+		}
 	} else {
 		$form = projprop_edit_confirm_attachment_form(
 			$form,
