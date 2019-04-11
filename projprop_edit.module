@@ -9,6 +9,60 @@ function projprop_edit_node_access($node, $op, $account) {
 	}
 }
 
+function projprop_edit_user_view_alter(&$build) {
+	$build['proposals'] = array('#field_type' => 'text', '#field_name' => 'TEST', '#title' => 'TEST2');
+	$main_researcher_links = '';
+	$coaapicant_links = '';
+
+	$nodes = node_load_multiple(array(), array('type' => 'project_proposal'));
+	$query = db_select('node', 'n');
+	$query->join('field_data_field_dsv_person_in_charge', 'p', 'n.nid = p.entity_id');
+	$query
+		->fields('n', array('nid', 'title', 'created'))
+		->condition('n.type', 'project_proposal')
+		->condition('n.status', '1')
+		->condition('p.field_dsv_person_in_charge_uid', $build['#account']->uid)
+		->orderBy('n.created', 'DESC');
+	$main_researcher = $query->execute();
+
+	foreach ($main_researcher as $record) {
+		$nid = $record->nid;
+		$position = array_search($nid, array_keys($nodes)) + 1;
+		$offset = floor((count($nodes) - $position) / 10);
+		$link = l($record->title , 'proposals', array('query' => array('page' => $offset), 'fragment' => 'node-'.$nid));
+		$main_researcher_links .= $link . ' ('.format_date($record->created, 'without_time').')</br>';
+	}
+
+	$build['proposals'][0]['#markup'] = "<dl><div class=\"field\"><div class=\"field-label\">"
+		. t('Main researcher in') . ":&nbsp;</div><div class=\"field-items\"><div class=\"field-item even\">"
+		. $main_researcher_links . "</div></div></div></dl>";
+
+	$query = db_select('node', 'n');
+	$query->join('field_data_field_coapplicants', 'c', 'n.nid = c.entity_id');
+	$query
+		->fields('n', array('nid', 'title', 'created'))
+		->condition('n.type', 'project_proposal')
+		->condition('n.status', '1')
+		->condition('c.field_coapplicants_uid', $build['#account']->uid)
+		->orderBy('n.created', 'DESC');
+	$coaapicant = $query->execute();
+
+	foreach ($coaapicant as $record) {
+		$nid = $record->nid;
+		$position = array_search($nid, array_keys($nodes)) + 1;
+		$offset = floor((count($nodes) - $position) / 10);
+		$link = l($record->title , 'proposals', array('query' => array('page' => $offset), 'fragment' => 'node-'.$nid));
+		$coaapicant_links .= $link . ' ('.format_date($record->created, 'without_time').')</br>';;
+  }
+
+	$build['coaapicant'][0]['#markup'] = "<dl><div class=\"field\"><div class=\"field-label\">"
+		. t('Co-applicant in') . ":&nbsp;</div><div class=\"field-items\"><div class=\"field-item even\">"
+		. $coaapicant_links . "</div></div></div></dl>";
+
+	$build['proposals']['#weight'] = -1;
+	$build['coaapicant']['#weight'] = -1;
+}
+
 function projprop_edit_extra_validate(&$form, &$form_state) {
 	$oldfilesFIDs = (isset($form_state['storage']['attachments']) ? $form_state['storage']['attachments'] : array());
 	$oldfilesFIDs[] = 0; // we add this because new files suddenly lists a file with fid = 0.. weird!
@@ -126,7 +180,7 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 		$form['actions']['submit_no']['#submit'][] = 'projprop_edit_form_submit_not_changed';
 
 		// Hide all fields except attachments so they're not show to user, but values are saved. Ugly...
-		$form['title']['#access'] = FALSE;
+		//$form['title']['#access'] = FALSE;
 		foreach ($form as $field_name => $value) {
 			if (strpos($field_name, 'field_') === 0 && $field_name <> 'field_attachments') {
        				$form[$field_name]['#prefix'] = '<div style="display:none;">';
