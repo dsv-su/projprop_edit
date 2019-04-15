@@ -9,10 +9,35 @@ function projprop_edit_node_access($node, $op, $account) {
 	}
 }
 
+/**
+ * Value callback for a user_reference autocomplete element.
+ *
+ * Substitute in the user name for the uid.
+ */
+function projprop_edit_autocomplete_value($element, $input = FALSE, $form_state) {
+  if ($input === FALSE) {
+    // We're building the displayed 'default value': expand the raw uid into
+    // "realname [username]".
+    $uid = $element['#default_value'];
+    if (!empty($uid)) {
+      $q = db_select('users', 'u');
+      $q->join('realname', 'r', 'u.uid = r.uid');
+      $q->addField('u', 'name');
+      $q->addField('r', 'realname');
+      $q->condition('u.uid', $uid)
+        ->range(0, 1);
+      $result = $q->execute();
+      // @todo If no result (user doesn't exist).
+      $value = $result->fetchAll();
+      return $value[0]->realname.' [' . $value[0]->name . ']';
+    }
+  }
+}
+
 function projprop_edit_user_view_alter(&$build) {
 	$build['proposals'] = array('#field_type' => 'text', '#field_name' => 'TEST', '#title' => 'TEST2');
 	$main_researcher_links = '';
-	$coaapicant_links = '';
+	$coaaplicant_links = '';
 
 	$nodes = node_load_multiple(array(), array('type' => 'project_proposal'));
 	$query = db_select('node', 'n');
@@ -45,22 +70,22 @@ function projprop_edit_user_view_alter(&$build) {
 		->condition('n.status', '1')
 		->condition('c.field_coapplicants_uid', $build['#account']->uid)
 		->orderBy('n.created', 'DESC');
-	$coaapicant = $query->execute();
+	$coaaplicant = $query->execute();
 
-	foreach ($coaapicant as $record) {
+	foreach ($coaaplicant as $record) {
 		$nid = $record->nid;
 		$position = array_search($nid, array_keys($nodes)) + 1;
 		$offset = floor((count($nodes) - $position) / 10);
 		$link = l($record->title , 'proposals', array('query' => array('page' => $offset), 'fragment' => 'node-'.$nid));
-		$coaapicant_links .= $link . ' ('.format_date($record->created, 'without_time').')</br>';;
+		$coaaplicant_links .= $link . ' ('.format_date($record->created, 'without_time').')</br>';;
   }
 
-	$build['coaapicant'][0]['#markup'] = "<dl><div class=\"field\"><div class=\"field-label\">"
+	$build['coaaplicant'][0]['#markup'] = "<dl><div class=\"field\"><div class=\"field-label\">"
 		. t('Co-applicant in') . ":&nbsp;</div><div class=\"field-items\"><div class=\"field-item even\">"
-		. $coaapicant_links . "</div></div></div></dl>";
+		. $coaaplicant_links . "</div></div></div></dl>";
 
 	$build['proposals']['#weight'] = -1;
-	$build['coaapicant']['#weight'] = -1;
+	$build['coaaplicant']['#weight'] = -1;
 }
 
 function projprop_edit_extra_validate(&$form, &$form_state) {
@@ -196,7 +221,13 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 	}
 
     $form['field_dsv_person_in_charge'][LANGUAGE_NONE][0]['uid']['#autocomplete_path'] = 'realname/autocomplete';
-    $form['field_coapplicants'][LANGUAGE_NONE][0]['uid']['#autocomplete_path'] = 'realname/autocomplete';
+    $form['field_dsv_person_in_charge'][LANGUAGE_NONE][0]['uid']['#value_callback'] = 'projprop_edit_autocomplete_value';
+	foreach ($form['field_coapplicants'][LANGUAGE_NONE] as $key => $value) {
+		if (is_numeric($key)) {
+			$form['field_coapplicants'][LANGUAGE_NONE][$key]['uid']['#autocomplete_path'] = 'realname/autocomplete';
+			$form['field_coapplicants'][LANGUAGE_NONE][$key]['uid']['#value_callback'] = 'projprop_edit_autocomplete_value';
+		}
+	}
 
 	db_insert('login_history')
 	->fields(array(
