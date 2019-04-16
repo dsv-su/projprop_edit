@@ -34,6 +34,52 @@ function projprop_edit_autocomplete_value($element, $input = FALSE, $form_state)
   }
 }
 
+/**
+ * Validation callback for a user_reference autocomplete element.
+ */
+function projprop_edit_autocomplete_validate($element, &$form_state, $form) {
+  $field = field_widget_field($element, $form_state);
+  $instance = field_widget_instance($element, $form_state);
+
+  $value = $element['#value'];
+  $uid = NULL;
+
+  if (!empty($value)) {
+    // Check whether we have an explicit "[username@su.se]" input.
+    preg_match('/^(?:\s*|(.*) )?\[\s*(.+@[^\.].*\.[a-z]{2,})\s*\]$/', $value, $matches);
+    if (!empty($matches)) {
+      list(, $realname, $name) = $matches;
+      if (!empty($name)) {
+        if ($realname == user_load_by_name($name)->realname) {
+			$uid = user_load_by_name($name)->uid;
+        } else {
+			form_error($element, t('%name: name mismatch. Please check your selection.', array('%name' => $instance['label'])));
+        }
+      }
+    }
+    else {
+      // No explicit uid (the submitted value was not populated by autocomplete
+      // selection). Get the uid of a referencable user from the entered name.
+      $options = array(
+        'string' => $value,
+        'match' => 'equals',
+        'limit' => 1,
+      );
+      $references = user_reference_potential_references($field, $options);
+      if ($references) {
+        $uid = key($references);
+      }
+      else {
+        form_error($element, t('%name: found no valid user with that name.', array('%name' => $instance['label'])));
+      }
+    }
+  }
+
+  // Set the element's value as the user id that was extracted from the entered
+  // input.
+  form_set_value($element, $uid, $form_state);
+}
+
 function projprop_edit_user_view_alter(&$build) {
 	$build['proposals'] = array('#field_type' => 'text', '#field_name' => 'TEST', '#title' => 'TEST2');
 	$main_researcher_links = '';
@@ -222,10 +268,12 @@ function projprop_edit_form_node_form_alter(&$form, &$form_state, $form_id) {
 
     $form['field_dsv_person_in_charge'][LANGUAGE_NONE][0]['uid']['#autocomplete_path'] = 'realname/autocomplete';
     $form['field_dsv_person_in_charge'][LANGUAGE_NONE][0]['uid']['#value_callback'] = 'projprop_edit_autocomplete_value';
+    $form['field_dsv_person_in_charge'][LANGUAGE_NONE][0]['uid']['#element_validate'] = array('projprop_edit_autocomplete_validate');
 	foreach ($form['field_coapplicants'][LANGUAGE_NONE] as $key => $value) {
 		if (is_numeric($key)) {
 			$form['field_coapplicants'][LANGUAGE_NONE][$key]['uid']['#autocomplete_path'] = 'realname/autocomplete';
 			$form['field_coapplicants'][LANGUAGE_NONE][$key]['uid']['#value_callback'] = 'projprop_edit_autocomplete_value';
+			$form['field_coapplicants'][LANGUAGE_NONE][$key]['uid']['#element_validate'] = array('projprop_edit_autocomplete_validate');
 		}
 	}
 
