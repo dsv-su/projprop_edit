@@ -489,68 +489,84 @@ function projprop_edit_callback($node) {
 		case 'own':
 			$node->field_economy_owner[LANGUAGE_NONE][0]['uid'] = $user->uid;
 			$data = $user->realname;
+			$action_string = 'assigned him/herself the proposal';
 			break;
 		case 'unown':
 			$node->field_economy_owner[LANGUAGE_NONE][0]['uid'] = null;
 			$data = 'not yet assigned';
+			$action_string = 'unassigned him/herself from the proposal';
 			break;
 		case 'cancel':
 			$node->field_cancelled[LANGUAGE_NONE][0]['value'] = 1;
+			$action_string = 'cancelled the proposal';
 			break;
 		case 'uncancel':
 			$node->field_cancelled[LANGUAGE_NONE][0]['value'] = 0;
+			$action_string = 're-activated the proposal';
 			break;
 		case 'unit-head':
 			if (!isset($user->roles[7]) && !isset($user->roles[3])) {
 				drupal_json_output(false);
 			}
+			$action_string = '(Unit Head) approved the proposal';
 			$node->field_ok_from_unit_head[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'request-dsv-economy':
 			if (!($user->uid == $researcher) && !isset($user->roles[3])) {
 				drupal_json_output(false);
 			}
+			$action_string = 'requested the proposal\'s approval by DSV Economy';
 			$node->field_request_to_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'dsv-economy':
 			if (!isset($user->roles[8]) && !isset($user->roles[3])) {
 				drupal_json_output(false);
 			}
+			$action_string = '(DSV Economy) approved the proposal';
 			$node->field_ok_from_dsv_economy[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'request-vice-head':
 			if (!($user->uid == $researcher) && (!isset($user->roles[3])) && (!isset($user->roles[5])) && (!isset($user->roles[6])) && (!isset($user->roles[7])) && (!isset($user->roles[8]))) {
 				drupal_json_output(false);
 			}
+			$action_string = 'requested the proposal\'s approval by Vice Head';
 			$node->field_request_to_vice_head[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'vice-head':
 			if (!isset($user->roles[5]) && !isset($user->roles[3])) {
 				drupal_json_output(false);
 			}
+			$action_string = '(Vice Head) approved the proposal';
 			$node->field_ok_from_uno[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'final':
 			if (!($user->uid == $researcher) && !isset($user->roles[5]) && !isset($user->roles[3]) ) {
 				drupal_json_output(false);
 			}
+			$action_string = 'sent the proposal to Registrator';
 			$node->field_sent_to_birgitta_o[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'funding-yes':
 			if (!($user->uid == $researcher) && !isset($user->roles[5]) && !isset($user->roles[3])) {
 				drupal_json_output(false);
 			}
+			$action_string = 'reported that the proposal has been granted funding';
 			$node->field_approved_funding[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'funding-no':
 			if (!($user->uid == $researcher) && !isset($user->roles[5]) && !isset($user->roles[3])) {
 				drupal_json_output(false);
 			}
+			$action_string = 'reported that the proposal has NOT been granted funding';
 			$node->field_approved_funding[LANGUAGE_NONE][0]['value'] = 0;
 			break;
 		default:
 			break;
 	}
+
+	$date = format_date(time(), 'medium');
+	$string_to_append = '*status changed* ' . "\r\n" . $user->realname . ' ' . $action_string . ' on ' . $date . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
+	$node->field_conversation['und'][0]['value'] = $string_to_append . (isset($node->field_conversation) ? $node->field_conversation['und'][0]['value'] : '');
 
 	node_save($node);
 	drupal_json_output($data);
