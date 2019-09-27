@@ -539,11 +539,29 @@ function projprop_edit_callback($node) {
 			$action_string = '(Vice Head) approved the proposal';
 			$node->field_ok_from_uno[LANGUAGE_NONE][0]['value'] = 1;
 			break;
-		case 'final':
+		case 'final-request':
+			// Researcher sends final submission for VC approval
 			if (!($user->uid == $researcher) && !isset($user->roles[5]) && !isset($user->roles[3]) ) {
 				drupal_json_output(false);
 			}
-			$action_string = 'sent the proposal to Registrator';
+			$action_string = 'requests the final submission approval by Vice head';
+			$node->field_sent_to_birgitta_o[LANGUAGE_NONE][0]['value'] = 1;
+			break;
+		case 'final-approve':
+			// VC approves the request of researcher
+			if (!isset($user->roles[5]) && !isset($user->roles[3])) {
+				drupal_json_output(false);
+			}
+			$action_string = '(Vice head) approved the proposal to be sent to Registrator';
+			$node->field_final_submission_approved[LANGUAGE_NONE][0]['value'] = 1;
+			break;
+		case 'final':
+			// VC sends final submission without request
+			if (!isset($user->roles[5]) && !isset($user->roles[3])) {
+				drupal_json_output(false);
+			}
+			$action_string = '(Vice head) sent the proposal to Registrator';
+			$node->field_final_submission_approved[LANGUAGE_NONE][0]['value'] = 1;
 			$node->field_sent_to_birgitta_o[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'funding-yes':
@@ -565,7 +583,7 @@ function projprop_edit_callback($node) {
 	}
 
 	$date = format_date(time(), 'medium');
-	$string_to_append = '*status changed* ' . "\r\n" . $user->realname . ' ' . $action_string . ' on ' . $date . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
+	$string_to_append = '*status* ' . "\r\n" . $user->realname . ' ' . $action_string . ' on ' . $date . "\r\n\r\n" . '----------------------' . "\r\n\r\n";
 	$node->field_conversation['und'][0]['value'] = $string_to_append . (isset($node->field_conversation) ? $node->field_conversation['und'][0]['value'] : '');
 
 	node_save($node);
