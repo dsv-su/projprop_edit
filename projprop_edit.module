@@ -544,7 +544,7 @@ function projprop_edit_callback($node) {
 			if (!($user->uid == $researcher) && !isset($user->roles[5]) && !isset($user->roles[3]) ) {
 				drupal_json_output(false);
 			}
-			$action_string = 'requests the final submission approval by Vice head';
+			$action_string = 'requested the final submission approval by Vice head';
 			$node->field_sent_to_birgitta_o[LANGUAGE_NONE][0]['value'] = 1;
 			break;
 		case 'final-approve':
